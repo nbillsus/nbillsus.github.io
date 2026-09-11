@@ -1,103 +1,721 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber-VAR 2088: Underground League</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #030712; font-family: 'Consolas', 'Segoe UI', monospace; user-select: none; }
+        canvas { display: block; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; color: #00f3ff; z-index: 5; }
+        #timer-display { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); font-size: 4rem; font-weight: bold; text-shadow: 0 0 15px #00f3ff; display: none; color: #ff0055; }
+        #controls-hint { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(3, 7, 18, 0.95); padding: 12px 28px; border-radius: 8px; font-size: 1.1rem; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); text-align: center; }
+        #play-type-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ff0055, #7900ff); padding: 8px 22px; border-radius: 4px; font-weight: 800; letter-spacing: 2px; font-size: 0.95rem; text-transform: uppercase; box-shadow: 0 0 15px rgba(255, 0, 85, 0.5); color: #fff; }
 
-  <!-- TODO 1: Put your name or handle in the title below (this shows in the browser tab). -->
-  <title>My Coding Portfolio</title>
+        /* Cyber Match Clock HUD */
+        #match-clock-hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #00f3ff;
+            border-radius: 8px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 10px rgba(0,243,255,0.2);
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
 
-  <style>
-    /* You can change any of these colors and sizes to make the page yours. */
-    :root {
-      --bg: #0f172a;          /* page background */
-      --card: #1e293b;        /* project card background */
-      --text: #e2e8f0;        /* main text */
-      --muted: #94a3b8;       /* softer text */
-      --accent: #38bdf8;      /* links and highlights */
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-    }
-    .wrap { max-width: 820px; margin: 0 auto; padding: 48px 20px 80px; }
-    header { margin-bottom: 40px; }
-    h1 { font-size: 2.2rem; margin: 0 0 8px; }
-    .tagline { color: var(--muted); font-size: 1.1rem; margin: 0; }
-    h2 { font-size: 1.4rem; margin: 40px 0 16px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-    a { color: var(--accent); }
+        /* Player Spotlight HUD */
+        #player-hud {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #ff0055;
+            border-radius: 8px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 10px rgba(255,0,85,0.2);
+            min-width: 220px;
+        }
+        #player-hud .player-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 4px;
+            background: #ff0055;
+            color: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+        #player-hud .player-details { display: flex; flex-direction: column; }
+        #player-hud .player-name { font-weight: 800; font-size: 1.1rem; letter-spacing: 0.5px; color: #ffffff; }
+        #player-hud .player-action { font-size: 0.75rem; text-transform: uppercase; color: #00f3ff; font-weight: 700; letter-spacing: 1px; }
 
-    .projects { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 620px) { .projects { grid-template-columns: 1fr 1fr; } }
+        /* Encrypted Bribe Alert Box */
+        #syndicate-comms {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            width: 300px;
+            background: rgba(121, 0, 255, 0.2);
+            border: 1px solid #7900ff;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 0 15px rgba(121, 0, 255, 0.4);
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+        #syndicate-comms h4 { margin: 0 0 6px 0; color: #ff0055; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
+        #syndicate-comms p { margin: 0; font-size: 0.85rem; color: #e2e8f0; line-height: 1.3; }
 
-    .card {
-      background: var(--card);
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 20px;
-    }
-    .card h3 { margin: 0 0 6px; font-size: 1.15rem; }
-    .card p { margin: 0 0 14px; color: var(--muted); font-size: 0.95rem; }
-    .card .links a { display: inline-block; margin-right: 14px; font-size: 0.9rem; }
-    footer { margin-top: 60px; color: var(--muted); font-size: 0.85rem; }
-  </style>
+        /* Biometric Gauge Panel */
+        #biometric-panel {
+            position: absolute;
+            top: 250px;
+            left: 20px;
+            width: 320px;
+            background: rgba(3, 7, 18, 0.95);
+            border: 1px solid #00f3ff;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+        #biometric-panel h4 { margin: 0 0 8px 0; color: #00f3ff; text-transform: uppercase; font-size: 0.85rem; }
+        .bio-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem; }
+        .bio-bar-bg { width: 100%; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; margin-top: 2px; }
+        .bio-bar-fill { height: 100%; background: linear-gradient(90deg, #00f3ff, #ff0055); width: 0%; transition: width 0.3s ease; }
+
+        /* Action Buttons */
+        #action-button-group {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .action-btn {
+            padding: 12px 22px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border: 1px solid #00f3ff;
+            background: rgba(3, 7, 18, 0.9);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0,243,255,0.2);
+            color: #00f3ff;
+            text-transform: uppercase;
+        }
+        .action-btn:hover { background: #00f3ff; color: #030712; box-shadow: 0 0 20px #00f3ff; }
+        .btn-offside { border-color: #ff0055; color: #ff0055; }
+        .btn-offside:hover { background: #ff0055; color: #fff; box-shadow: 0 0 20px #ff0055; }
+        .btn-onside { border-color: #00f3ff; color: #00f3ff; }
+        .btn-yellow { border-color: #eab308; color: #eab308; }
+        .btn-yellow:hover { background: #eab308; color: #000; }
+        .btn-red { border-color: #ef4444; color: #ef4444; }
+        .btn-red:hover { background: #ef4444; color: #fff; }
+        .btn-playon { border-color: #3b82f6; color: #3b82f6; }
+
+        /* Review Screen Panel */
+        #review-screen { display: none; width: 100%; height: 100%; background: rgba(3, 7, 18, 0.85); pointer-events: auto; }
+        .panel { background: rgba(15, 23, 42, 0.95); border: 1px solid #00f3ff; border-radius: 8px; padding: 20px; box-shadow: 0 0 20px rgba(0,243,255,0.2); }
+        
+        #var-replay { position: absolute; top: 20px; left: 20px; width: 320px; height: 210px; display: flex; flex-direction: column; }
+        #var-replay h3 { margin: 0 0 10px 0; color: #00f3ff; font-size: 1rem; text-transform: uppercase; }
+        #var-canvas-container { flex-grow: 1; background: #030712; border: 1px solid #334155; position: relative; border-radius: 4px; overflow: hidden; }
+        #var-canvas { width: 100%; height: 100%; display: block; }
+        
+        #stats-reasoning { position: absolute; bottom: 20px; left: 20px; width: calc(100% - 400px); }
+        #stats-reasoning h2 { margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .correct-text { color: #00f3ff; text-shadow: 0 0 10px #00f3ff; }
+        .incorrect-text { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
+        
+        #accuracy-tracker { position: absolute; top: 20px; right: 20px; width: 240px; }
+        #accuracy-tracker h3 { margin: 0 0 12px 0; border-bottom: 1px solid #334155; padding-bottom: 6px; color: #ff0055; text-transform: uppercase; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+        .stat-value { font-weight: bold; color: #ffffff; }
+
+        /* Full Time Stats Screen */
+        #full-time-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.98);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: auto;
+        }
+        .ft-card {
+            background: #0f172a;
+            border: 1px solid #ff0055;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.3);
+        }
+        .ft-card h2 { color: #00f3ff; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .ft-restart-btn {
+            background: linear-gradient(135deg, #ff0055, #7900ff);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ft-restart-btn:hover { box-shadow: 0 0 15px #ff0055; }
+    </style>
 </head>
 <body>
-  <div class="wrap">
 
-    <header>
-      <!-- TODO 2: Replace with your name or a handle. Do NOT put your full name +
-           email + phone together. First name + last initial, or a handle, is plenty. -->
-      <h1>Alex R.</h1>
-
-      <!-- TODO 3: One line about you as a builder. -->
-      <p class="tagline">Making games and apps in Coding with AI @ Menlo.</p>
-    </header>
-
-    <section>
-      <h2>About this portfolio</h2>
-      <!-- TODO 4: A few sentences. Why you're excited, what you want to get better at. -->
-      <p>
-        This is where I keep everything I build this semester. Each project has a
-        live demo you can try and a short write-up of how I thought through it —
-        including the messy parts.
-      </p>
-    </section>
-
-    <section>
-      <h2>Projects</h2>
-      <div class="projects">
-
-        <!-- This is an EXAMPLE card. Copy it for each new project.
-             When you add a project, put its files in a folder (e.g. /name-game/)
-             and point the "Live demo" link at that folder. -->
-        <div class="card">
-          <h3>Name Game</h3>
-          <p>A game that helps you match names to faces. My first build sprint.</p>
-          <div class="links">
-            <!-- TODO 5: Uncomment these once the name-game folder exists.
-                 Talk to your teacher before publishing anything with other
-                 students' faces on it. -->
-            <!-- <a href="./name-game/">Live demo</a> -->
-            <!-- <a href="./name-game/README.md">How I built it</a> -->
-            <span style="color:var(--muted); font-size:0.85rem;">Coming soon</span>
-          </div>
+    <div id="ui-layer">
+        <div id="match-clock-hud">MATCH TIME: <span id="minute-display">0</span>'</div>
+        <div id="play-type-badge">SCENARIO: INITIALIZING</div>
+        
+        <!-- Player Spotlight HUD -->
+        <div id="player-hud">
+            <div class="player-icon" id="hud-icon">⚡</div>
+            <div class="player-details">
+                <span class="player-name" id="hud-name">K. De Bruyne</span>
+                <span class="player-action" id="hud-action">IN POSSESSION</span>
+            </div>
         </div>
 
-        <!-- TODO 6: Add more cards here as you finish more sprints. -->
+        <!-- Encrypted Syndicate Bribe Comms -->
+        <div id="syndicate-comms">
+            <h4>[ENCRYPTED COMMS] FIXER ALERT</h4>
+            <p id="bribe-text">Standby for incoming transmission...</p>
+        </div>
 
-      </div>
-    </section>
+        <!-- Biometric Intent Gauge -->
+        <div id="biometric-panel">
+            <h4>NEURAL BIOMETRICS SCAN</h4>
+            <div class="bio-row"><span>Heart Rate:</span> <span id="bio-hr" style="color:#00f3ff;">120 BPM</span></div>
+            <div class="bio-row"><span>Adrenaline Spike:</span> <span id="bio-adren" style="color:#ff0055;">45%</span></div>
+            <div class="bio-row"><span>Aggression Index:</span> <span id="bio-agg" style="color:#ff0055;">30%</span></div>
+            <div class="bio-bar-bg"><div id="bio-bar" class="bio-bar-fill"></div></div>
+        </div>
 
-    <footer>
-      <!-- TODO 7: Optional — a link to your GitHub profile. -->
-      Built by hand + AI. Coding with AI, Menlo School.
-    </footer>
+        <div id="controls-hint">Scanning pitch feed...</div>
+        <div id="timer-display">5.0</div>
+        
+        <div id="action-button-group"></div>
 
-  </div>
+        <div id="review-screen">
+            <div id="var-replay" class="panel">
+                <h3>CYBER-LINE FREEZE FRAME</h3>
+                <div id="var-canvas-container">
+                    <canvas id="var-canvas" width="320" height="170"></canvas>
+                </div>
+            </div>
+            
+            <div id="stats-reasoning" class="panel">
+                <h2 id="result-title">Analyzing Telemetry...</h2>
+                <p id="result-reasoning">Calibrating optic sensors...</p>
+                <p>Decision Latency: <span id="reaction-time" style="color:#00f3ff;">-</span>s</p>
+            </div>
+            
+            <div id="accuracy-tracker" class="panel">
+                <h3>CAREER TELEMETRY</h3>
+                <div class="stat-row"><span>Evaluations:</span> <span id="stat-plays" class="stat-value">0</span></div>
+                <div class="stat-row"><span>Accuracy:</span> <span id="stat-correct" class="stat-value" style="color:#00f3ff">0</span></div>
+                <div class="stat-row"><span>Credits:</span> <span id="stat-credits" class="stat-value" style="color:#eab308">500 ₵</span></div>
+                <div class="stat-row"><span>Syndicate Karma:</span> <span id="stat-karma" class="stat-value" style="color:#7900ff">0</span></div>
+                <div class="stat-row" style="margin-top: 12px; border-top: 1px solid #334155; padding-top: 8px;">
+                    <span>Official Level:</span> <span id="stat-referee-level" class="stat-value" style="color:#ff0055">Grade-C Ref</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="full-time-screen">
+            <div class="ft-card">
+                <h2>MATCH TERMINATED</h2>
+                <div style="text-align: left; line-height: 1.8; margin: 20px 0; font-size: 0.95rem;">
+                    <p><strong>Match Duration:</strong> 90 Minutes</p>
+                    <p><strong>Total Calls:</strong> <span id="ft-total">0</span></p>
+                    <p><strong>Accuracy Rating:</strong> <span id="ft-accuracy">0</span>%</p>
+                    <p><strong>Credits Earned:</strong> <span id="ft-credits" style="color:#eab308">500 ₵</span></p>
+                    <p><strong>Syndicate Karma:</strong> <span id="ft-karma" style="color:#7900ff">0</span></p>
+                    <hr style="border-color: #334155; margin: 15px 0;">
+                    <p><strong>Yellow Cards:</strong> <span id="ft-yellows">0</span> | <strong>Reds:</strong> <span id="ft-reds">0</span></p>
+                </div>
+                <button class="ft-restart-btn" onclick="startMatch()">Start New Match</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // --- CYBERPUNK ROSTERS ---
+        const PRO_PASSERS = [
+            { name: "K. De Bruyne v2", icon: "KD" },
+            { name: "L. Modrić-9", icon: "LM" },
+            { name: "B. Fernandes.exe", icon: "BF" },
+            { name: "T. Kroos-Unit", icon: "TK" },
+            { name: "M. Ødegaard", icon: "MO" }
+        ];
+
+        const PRO_ATTACKERS = [
+            { name: "Vini Jr. Neo", icon: "VJ" },
+            { name: "K. Mbappé-X", icon: "KM" },
+            { name: "E. Haaland 2.0", icon: "EH" },
+            { name: "Neymar Cyber", icon: "NJ" },
+            { name: "C. Ronaldo Prime", icon: "CR" }
+        ];
+
+        const PRO_GOALIES = [
+            { name: "T. Courtois-AI", icon: "TC" },
+            { name: "E. Martínez Zero", icon: "EM" }
+        ];
+
+        const CYBER_FOUL_SCENARIOS = [
+            { 
+                desc: "Defender engaged illegal thruster slide, taking out the striker.", 
+                correct: "red", 
+                text: "Red Card! Biometrics confirm 98% malicious intent with boosted thrusters.",
+                bio: { hr: "178 BPM", adren: "92%", agg: "98%", fill: 98 }
+            },
+            { 
+                desc: "Clean cyberic slide tackle making contact with the ball first.", 
+                correct: "play_on", 
+                text: "Clean tackle! Low aggression biometric signature detected. Play on.",
+                bio: { hr: "125 BPM", adren: "30%", agg: "20%", fill: 20 }
+            },
+            { 
+                desc: "Midfielder executed a tactical leg-trip to interrupt the cyber-drive.", 
+                correct: "yellow", 
+                text: "Yellow Card! Controlled cynical foul to stop momentum.",
+                bio: { hr: "145 BPM", adren: "65%", agg: "60%", fill: 60 }
+            },
+            { 
+                desc: "Defender extended metallic studs high toward the knee joint.", 
+                correct: "red", 
+                text: "Red Card! Lethal force potential detected in joint actuators.",
+                bio: { hr: "185 BPM", adren: "95%", agg: "95%", fill: 95 }
+            }
+        ];
+
+        function updatePlayerHUD(playerObj, actionText) {
+            if (!playerObj) return;
+            document.getElementById('hud-name').innerText = playerObj.name;
+            document.getElementById('hud-icon').innerText = playerObj.icon;
+            document.getElementById('hud-action').innerText = actionText;
+        }
+
+        // --- 1. SETUP THREE.JS SCENE ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030712);
+
+        const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(18, 26, 52); 
+        camera.lookAt(30, 2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const mainSun = new THREE.DirectionalLight(0x00f3ff, 0.9);
+        mainSun.position.set(30, 60, 40);
+        mainSun.castShadow = true;
+        scene.add(mainSun);
+
+        // --- 2. CYBER PITCH ---
+        const pitchGeo = new THREE.PlaneGeometry(150, 90);
+        const pitchMat = new THREE.MeshLambertMaterial({ color: 0x091322 });
+        const pitch = new THREE.Mesh(pitchGeo, pitchMat);
+        pitch.rotation.x = -Math.PI / 2;
+        pitch.receiveShadow = true;
+        scene.add(pitch);
+
+        function createLine(x, z, w, d) {
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
+            mesh.rotation.x = -Math.PI / 2; mesh.position.set(x, 0.05, z);
+            scene.add(mesh);
+        }
+
+        createLine(0, -30, 100, 0.5); createLine(0, 30, 100, 0.5);  
+        createLine(-50, 0, 0.5, 60); createLine(50, 0, 0.5, 60); createLine(0, 0, 0.5, 60);    
+        createLine(33.5, 0, 0.5, 40); createLine(41.75, 20, 16.5, 0.5); createLine(41.75, -20, 16.5, 0.5); 
+
+        // --- 3. GOAL & NET ---
+        const goalGroup = new THREE.Group();
+        const postMat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1 });
+        const leftPost = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8, 16), postMat); leftPost.position.set(49, 4, -7);
+        const rightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8, 16), postMat); rightPost.position.set(49, 4, 7);
+        const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 14.4, 16), postMat);
+        crossbar.rotation.x = Math.PI / 2; crossbar.position.set(49, 8, 0);
+        goalGroup.add(leftPost, rightPost, crossbar);
+        scene.add(goalGroup);
+
+        // --- 4. HUMAN PLAYER MODEL BUILDER ---
+        function createPlayer(shirtColor, isGoalie = false) {
+            const group = new THREE.Group();
+            const matSkin = new THREE.MeshLambertMaterial({ color: 0x334155 });
+            const matShirt = new THREE.MeshLambertMaterial({ color: shirtColor });
+            const matShorts = new THREE.MeshLambertMaterial({ color: isGoalie ? 0x111111 : 0x00f3ff });
+
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.45, 1.6, 16), matShirt);
+            torso.position.y = 2.4; torso.castShadow = true;
+
+            const headGroup = new THREE.Group();
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), matSkin);
+            headGroup.add(head); headGroup.position.y = 3.6;
+
+            function createLimb(upperGeo, upperMat) {
+                const limbGroup = new THREE.Group();
+                const upper = new THREE.Mesh(upperGeo, upperMat); upper.castShadow = true;
+                const lower = new THREE.Mesh(upperGeo, matSkin); lower.position.y = -0.8;
+                limbGroup.add(upper, lower);
+                return { root: limbGroup, upper, lower };
+            }
+
+            const limbGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.8, 16); limbGeo.translate(0, -0.4, 0);
+            const leftArm = createLimb(limbGeo, matShirt); leftArm.root.position.set(-0.65, 3.0, 0);
+            const rightArm = createLimb(limbGeo, matShirt); rightArm.root.position.set(0.65, 3.0, 0);
+
+            const thighGeo = new THREE.CylinderGeometry(0.2, 0.18, 0.9, 16); thighGeo.translate(0, -0.45, 0);
+            const leftLeg = createLimb(thighGeo, matShorts); leftLeg.root.position.set(-0.25, 1.6, 0);
+            const rightLeg = createLimb(thighGeo, matShorts); rightLeg.root.position.set(0.25, 1.6, 0);
+
+            group.add(torso, headGroup, leftArm.root, rightArm.root, leftLeg.root, rightLeg.root);
+            group.userData = { torso, head: headGroup, leftArm, rightArm, leftLeg, rightLeg, proPlayer: null, startX: 0, targetX: 0, startZ: 0, targetZ: 0 };
+            scene.add(group);
+            return group;
+        }
+
+        const passer = createPlayer(0xff0055); 
+        const receiver = createPlayer(0xff0055); 
+        const attacker3 = createPlayer(0xff0055); 
+        const defender1 = createPlayer(0x00f3ff); 
+        const defender2 = createPlayer(0x00f3ff); 
+        const defender3 = createPlayer(0x00f3ff); 
+        const goalie = createPlayer(0x7900ff, true); 
+        
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshStandardMaterial({ color: 0x00f3ff, roughness: 0.1 }));
+        scene.add(ball);
+
+        // --- 5. VAR CANONICAL FREEZE FRAME ---
+        const varCanvas = document.getElementById('var-canvas');
+        const varCtx = varCanvas.getContext('2d');
+
+        function drawVARFrame(defX, recX) {
+            varCtx.fillStyle = '#030712';
+            varCtx.fillRect(0, 0, varCanvas.width, varCanvas.height);
+
+            const mapX = (x) => ((x - 10) / 42) * varCanvas.width;
+            const mappedDefX = mapX(defX);
+            const mappedRecX = mapX(recX);
+
+            varCtx.beginPath(); varCtx.moveTo(mappedDefX, 0); varCtx.lineTo(mappedDefX, varCanvas.height);
+            varCtx.strokeStyle = '#00f3ff'; varCtx.lineWidth = 3; varCtx.stroke();
+
+            varCtx.beginPath(); varCtx.arc(mappedRecX, varCanvas.height / 2, 6, 0, Math.PI * 2);
+            varCtx.fillStyle = '#ff0055'; varCtx.fill();
+            
+            varCtx.beginPath(); varCtx.moveTo(mappedRecX, 0); varCtx.lineTo(mappedRecX, varCanvas.height);
+            varCtx.strokeStyle = '#ff0055'; varCtx.lineWidth = 1; varCtx.setLineDash([4, 4]); varCtx.stroke();
+            varCtx.setLineDash([]);
+        }
+
+        // --- 6. GAME STATE & CAREER SYSTEM ---
+        let state = 'IDLE'; 
+        let playScenario = 'GROUND'; 
+        let actualDecision = '';
+        let offsideDistance = 0;
+        let timerStart = 0;
+        let animClock = 0;
+        let currentMinute = 0;
+        let offsidePool = [];
+        let currentFoulData = null;
+        let activeBribe = null;
+
+        let careerStats = {
+            correctCalls: 0,
+            incorrectCalls: 0,
+            credits: 500,
+            karma: 0,
+            plays: 0,
+            yellows: 0,
+            reds: 0
+        };
+
+        function getRandomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function startMatch() {
+            currentMinute = 0;
+            offsidePool = [true, true, true, false, false, false].sort(() => Math.random() - 0.5);
+            document.getElementById('full-time-screen').style.display = 'none';
+            document.getElementById('minute-display').innerText = currentMinute;
+            resetPlay();
+        }
+
+        function resetPlay() {
+            if (currentMinute >= 90) {
+                showFullTimeStats();
+                return;
+            }
+
+            currentMinute += Math.floor(Math.random() * 12) + 12;
+            if (currentMinute > 90) currentMinute = 90;
+            document.getElementById('minute-display').innerText = currentMinute;
+
+            const isOffsideType = Math.random() < 0.5 && offsidePool.length > 0;
+            activeBribe = null;
+            document.getElementById('syndicate-comms').style.display = 'none';
+            document.getElementById('biometric-panel').style.display = 'none';
+
+            // Random Syndicate Bribe Trigger (30% chance)
+            if (Math.random() < 0.3) {
+                const targetCall = Math.random() < 0.5 ? (isOffsideType ? 'ONSIDE' : 'play_on') : (isOffsideType ? 'OFFSIDE' : 'red');
+                activeBribe = { requestedCall: targetCall, payout: 300, karmaBonus: 15 };
+                document.getElementById('bribe-text').innerText = `Fixer offer: Call ${targetCall.replace('_',' ').toUpperCase()} for +300 ₵ payout.`;
+                document.getElementById('syndicate-comms').style.display = 'block';
+            }
+
+            if (isOffsideType) {
+                const isOffsideVal = offsidePool.pop();
+                currentFoulData = null;
+                playScenario = 'THROUGH_BALL';
+
+                passer.userData.proPlayer = getRandomItem(PRO_PASSERS);
+                receiver.userData.proPlayer = getRandomItem(PRO_ATTACKERS);
+                goalie.userData.proPlayer = getRandomItem(PRO_GOALIES);
+
+                document.getElementById('play-type-badge').innerText = `SCENARIO: OPTIC OFFSIDE SCAN`;
+                updatePlayerHUD(passer.userData.proPlayer, "IN POSSESSION");
+
+                passer.position.set(8, 0, 10); passer.userData = { ...passer.userData, startX: 8, targetX: 18, startZ: 10, targetZ: 10 };
+                const recTargetX = isOffsideVal ? 38 : 30;
+                receiver.position.set(22, 0, -5); receiver.userData = { ...receiver.userData, startX: 22, targetX: recTargetX, startZ: -5, targetZ: -5 };
+
+                defender1.position.set(38, 0, 5); defender1.userData = { ...defender1.userData, startX: 38, targetX: 33, startZ: 5, targetZ: 5 };
+                defender2.position.set(37, 0, -8); defender2.userData = { ...defender2.userData, startX: 37, targetX: 31, startZ: -8, targetZ: -8 };
+                defender3.position.set(36, 0, 15); defender3.userData = { ...defender3.userData, startX: 36, targetX: 30, startZ: 15, targetZ: 15 };
+
+            } else {
+                playScenario = 'DEFENSIVE_TACKLE';
+                currentFoulData = getRandomItem(CYBER_FOUL_SCENARIOS);
+                
+                passer.userData.proPlayer = getRandomItem(PRO_PASSERS);
+                receiver.userData.proPlayer = getRandomItem(PRO_ATTACKERS);
+
+                document.getElementById('play-type-badge').innerText = `SCENARIO: BIOMETRIC FOUL SCAN`;
+                updatePlayerHUD(receiver.userData.proPlayer, "CYBER DRIVE");
+
+                // Populate Biometric Panel
+                document.getElementById('bio-hr').innerText = currentFoulData.bio.hr;
+                document.getElementById('bio-adren').innerText = currentFoulData.bio.adren;
+                document.getElementById('bio-agg').innerText = currentFoulData.bio.agg;
+                document.getElementById('bio-bar').style.width = `${currentFoulData.bio.fill}%`;
+                document.getElementById('biometric-panel').style.display = 'block';
+
+                receiver.position.set(18, 0, 0); receiver.userData = { ...receiver.userData, startX: 18, targetX: 28, startZ: 0, targetZ: 0 };
+                defender1.position.set(32, 0, 0); defender1.userData = { ...defender1.userData, startX: 32, targetX: 28.5, startZ: 0, targetZ: 0 };
+                defender2.position.set(35, 0, -10); defender2.userData = { ...defender2.userData, startX: 35, targetX: 32, startZ: -10, targetZ: -10 };
+                defender3.position.set(35, 0, 10); defender3.userData = { ...defender3.userData, startX: 35, targetX: 32, startZ: 10, targetZ: 10 };
+            }
+
+            goalie.position.set(48, 0, 0);
+            ball.position.set(passer.position.x + 0.8, 0.4, passer.position.z);
+
+            state = 'PRE_PASS';
+            animClock = 0;
+            
+            document.getElementById('review-screen').style.display = 'none';
+            document.getElementById('timer-display').style.display = 'none';
+            document.getElementById('action-button-group').innerHTML = '';
+            document.getElementById('controls-hint').innerText = "Scanning cyber pitch...";
+        }
+
+        function triggerInputPhase() {
+            state = 'WAITING_INPUT';
+            timerStart = performance.now();
+            document.getElementById('timer-display').style.display = 'block';
+            
+            const btnGroup = document.getElementById('action-button-group');
+            btnGroup.innerHTML = '';
+
+            if (playScenario === 'DEFENSIVE_TACKLE') {
+                document.getElementById('controls-hint').innerText = "Assess Biometrics & Intent!";
+                createActionButton(btnGroup, 'Yellow Card', 'btn-yellow', () => handleUserDecision('yellow'));
+                createActionButton(btnGroup, 'Red Card', 'btn-red', () => handleUserDecision('red'));
+                createActionButton(btnGroup, 'Play On', 'btn-playon', () => handleUserDecision('play_on'));
+            } else {
+                document.getElementById('controls-hint').innerText = "Goal Scored! Review Build-Up Offside:";
+                createActionButton(btnGroup, 'Offside (No Goal)', 'btn-offside', () => handleUserDecision('OFFSIDE'));
+                createActionButton(btnGroup, 'Onside (Goal)', 'btn-onside', () => handleUserDecision('ONSIDE'));
+            }
+        }
+
+        function createActionButton(container, text, className, onClick) {
+            const btn = document.createElement('button');
+            btn.innerText = text;
+            btn.className = `action-btn ${className}`;
+            btn.onclick = onClick;
+            container.appendChild(btn);
+        }
+
+        function handleUserDecision(userChoice) {
+            if (state !== 'WAITING_INPUT') return;
+            
+            const reactionTime = ((performance.now() - timerStart) / 1000).toFixed(2);
+            state = 'REVIEW';
+            document.getElementById('timer-display').style.display = 'none';
+            document.getElementById('action-button-group').innerHTML = '';
+            
+            careerStats.plays++;
+            let isCorrect = false;
+
+            if (playScenario === 'DEFENSIVE_TACKLE') {
+                isCorrect = userChoice === currentFoulData.correct;
+                if (userChoice === 'yellow') careerStats.yellows++;
+                if (userChoice === 'red') careerStats.reds++;
+            } else {
+                isCorrect = userChoice === actualDecision;
+            }
+
+            // Bribe Payout vs Reputation Logic
+            let bribeMessage = "";
+            if (activeBribe && userChoice === activeBribe.requestedCall) {
+                careerStats.credits += activeBribe.payout;
+                careerStats.karma += activeBribe.karmaBonus;
+                bribeMessage = ` [Syndicate Payout: +${activeBribe.payout} ₵]`;
+            } else if (isCorrect) {
+                careerStats.credits += 100; // Base match official fee
+            }
+
+            if (isCorrect) careerStats.correctCalls++; else careerStats.incorrectCalls++;
+
+            document.getElementById('review-screen').style.display = 'block';
+            document.getElementById('result-title').innerText = isCorrect ? "DECISION VERIFIED" : "DECISION OVERRULED";
+            document.getElementById('result-title').className = isCorrect ? "correct-text" : "incorrect-text";
+
+            let reason = playScenario === 'DEFENSIVE_TACKLE' ? currentFoulData.text : 
+                (actualDecision === 'OFFSIDE' ? `Offside confirmed. Attacker exceeded defensive line prior to scoring.` : `Onside verified. Goal stands.`);
+            
+            document.getElementById('result-reasoning').innerText = `Your Call: ${userChoice.toUpperCase()}. ${reason}${bribeMessage}`;
+            document.getElementById('reaction-time').innerText = reactionTime;
+
+            document.getElementById('stat-plays').innerText = careerStats.plays;
+            document.getElementById('stat-correct').innerText = careerStats.correctCalls;
+            document.getElementById('stat-credits').innerText = `${careerStats.credits} ₵`;
+            document.getElementById('stat-karma').innerText = careerStats.karma;
+            
+            setTimeout(resetPlay, 4000);
+        }
+
+        function showFullTimeStats() {
+            const total = careerStats.correctCalls + careerStats.incorrectCalls;
+            const accuracy = total > 0 ? ((careerStats.correctCalls / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('ft-total').innerText = total;
+            document.getElementById('ft-accuracy').innerText = accuracy;
+            document.getElementById('ft-credits').innerText = `${careerStats.credits} ₵`;
+            document.getElementById('ft-karma').innerText = careerStats.karma;
+            document.getElementById('ft-yellows').innerText = careerStats.yellows;
+            document.getElementById('ft-reds').innerText = careerStats.reds;
+
+            document.getElementById('full-time-screen').style.display = 'flex';
+        }
+
+        function animateRunning(player, speed) {
+            const time = performance.now() * speed;
+            player.userData.leftLeg.root.rotation.x = Math.sin(time) * 0.85;
+            player.userData.rightLeg.root.rotation.x = Math.sin(time + Math.PI) * 0.85;
+        }
+
+        // --- 7. ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (state === 'PRE_PASS') {
+                animClock += 0.012;
+                if (playScenario === 'DEFENSIVE_TACKLE') {
+                    receiver.position.x = THREE.MathUtils.lerp(receiver.userData.startX, receiver.userData.targetX, animClock);
+                    defender1.position.x = THREE.MathUtils.lerp(defender1.userData.startX, defender1.userData.targetX, animClock);
+                    animateRunning(receiver, 0.012);
+                    if (animClock > 0.5) defender1.rotation.z = -Math.PI / 3.5;
+                    ball.position.x = receiver.position.x + 0.6;
+                    ball.position.z = receiver.position.z;
+                    if (animClock >= 1) triggerInputPhase();
+                } else {
+                    // Stage 1: Pass & Run
+                    if (animClock < 0.6) {
+                        let t = animClock / 0.6;
+                        [passer, receiver].forEach(p => {
+                            p.position.x = THREE.MathUtils.lerp(p.userData.startX, p.userData.targetX, t);
+                            animateRunning(p, 0.012);
+                        });
+                        ball.position.x = THREE.MathUtils.lerp(passer.userData.startX + 0.8, receiver.userData.targetX, t);
+                        ball.position.z = THREE.MathUtils.lerp(passer.userData.startZ, receiver.userData.targetZ, t);
+                        
+                        if (animClock >= 0.58 && !actualDecision) {
+                            const snapDefX = Math.max(defender1.position.x, defender2.position.x, defender3.position.x);
+                            offsideDistance = receiver.position.x - snapDefX;
+                            actualDecision = offsideDistance > 0 ? 'OFFSIDE' : 'ONSIDE';
+                            drawVARFrame(snapDefX, receiver.position.x);
+                        }
+                    } 
+                    // Stage 2: Shot & Goal Execution
+                    else {
+                        updatePlayerHUD(receiver.userData.proPlayer, "TAKING SHOT");
+                        let tShot = (animClock - 0.6) / 0.4;
+                        ball.position.x = THREE.MathUtils.lerp(receiver.userData.targetX, 49, tShot);
+                        ball.position.z = THREE.MathUtils.lerp(receiver.userData.targetZ, 0, tShot);
+                        ball.position.y = Math.sin(tShot * Math.PI) * 3 + 0.4;
+                        
+                        if (animClock >= 1.0) {
+                            ball.position.set(49.5, 1, 0); // Ball rests in net
+                            triggerInputPhase();
+                        }
+                    }
+                }
+            }
+
+            if (state === 'WAITING_INPUT') {
+                const elapsed = (performance.now() - timerStart) / 1000;
+                const remaining = Math.max(5.0 - elapsed, 0).toFixed(1);
+                document.getElementById('timer-display').innerText = remaining;
+                if (remaining <= 0) handleUserDecision('TIMEOUT');
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        startMatch();
+        animate();
+    </script>
 </body>
 </html>
